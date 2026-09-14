@@ -1,6 +1,7 @@
-const prisma = require("../lib/prisma");
+import type { Request, Response } from "express";
+import prisma from "../lib/prisma.ts";
 
-async function getHealth(req, res) {
+export async function getHealth(req: Request, res: Response) {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: "ok", database: "connected" });
@@ -8,5 +9,3 @@ async function getHealth(req, res) {
     res.status(503).json({ status: "error", database: "unreachable" });
   }
 }
-
-module.exports = { getHealth };
