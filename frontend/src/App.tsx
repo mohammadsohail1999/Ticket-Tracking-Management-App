@@ -4,7 +4,6 @@ import ProtectedRoute from './routes/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
-import './App.css'
 
 function App() {
   return (

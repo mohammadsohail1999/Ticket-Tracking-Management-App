@@ -5,7 +5,6 @@ import { z } from 'zod'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { signIn } from '../lib/auth-client'
 import type { AuthRedirectState } from '../types/auth'
-import './LoginPage.css'
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email address.'),
@@ -49,27 +48,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <form className="login-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <h1>Sign in</h1>
-        {formError && <p className="field-error">{formError}</p>}
-        <label>
+    <div className="flex min-h-svh items-center justify-center p-4">
+      <form
+        className="flex w-full max-w-[360px] flex-col gap-4 text-left"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
+        <h1 className="mb-2 text-center text-[36px] font-medium -tracking-[1.68px] text-text-h font-sans lg:text-[56px]">
+          Sign in
+        </h1>
+        {formError && (
+          <p className="rounded-md border border-accent-border bg-accent-bg px-3 py-2.5 text-sm text-accent">
+            {formError}
+          </p>
+        )}
+        <label className="flex flex-col gap-1.5 text-[15px] text-text-h">
           Email
-          <input type="email" autoComplete="email" {...register('email')} />
-          {errors.email && <span className="field-hint">{errors.email.message}</span>}
+          <input
+            type="email"
+            autoComplete="email"
+            className="rounded-md border border-border bg-bg px-3 py-2.5 text-text-h focus:outline-2 focus:outline-accent-border focus:outline-offset-1"
+            {...register('email')}
+          />
+          {errors.email && (
+            <span className="text-[13px] text-accent">{errors.email.message}</span>
+          )}
         </label>
-        <label>
+        <label className="flex flex-col gap-1.5 text-[15px] text-text-h">
           Password
           <input
             type="password"
             autoComplete="current-password"
+            className="rounded-md border border-border bg-bg px-3 py-2.5 text-text-h focus:outline-2 focus:outline-accent-border focus:outline-offset-1"
             {...register('password')}
           />
           {errors.password && (
-            <span className="field-hint">{errors.password.message}</span>
+            <span className="text-[13px] text-accent">{errors.password.message}</span>
           )}
         </label>
-        <button type="submit" disabled={isSubmitting}>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="cursor-pointer rounded-md border border-accent-border bg-accent px-3 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>

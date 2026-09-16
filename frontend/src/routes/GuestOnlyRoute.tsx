@@ -6,7 +6,7 @@ export default function GuestOnlyRoute({ children }: PropsWithChildren) {
   const { data: session, isPending } = useSession()
 
   if (isPending) {
-    return <p className="full-page-status">Loading…</p>
+    return <p className="flex min-h-svh items-center justify-center">Loading…</p>
   }
 
   if (session) {

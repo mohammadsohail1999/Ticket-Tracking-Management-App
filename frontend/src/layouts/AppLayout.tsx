@@ -1,12 +1,11 @@
 import { Outlet } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import './AppLayout.css'
 
 export default function AppLayout() {
   return (
-    <div className="app-layout">
+    <div className="flex min-h-svh flex-col">
       <Navbar />
-      <main className="app-content">
+      <main className="flex-1 p-8">
         <Outlet />
       </main>
     </div>

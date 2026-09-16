@@ -7,7 +7,7 @@ export default function ProtectedRoute() {
   const location = useLocation()
 
   if (isPending) {
-    return <p className="full-page-status">Loading…</p>
+    return <p className="flex min-h-svh items-center justify-center">Loading…</p>
   }
 
   if (!session) {

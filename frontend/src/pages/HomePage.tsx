@@ -16,7 +16,9 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1>Ticket Tracking App</h1>
+      <h1 className="my-5 text-[36px] font-medium -tracking-[1.68px] text-text-h font-sans lg:my-8 lg:text-[56px]">
+        Ticket Tracking App
+      </h1>
       {error && <p>Backend unreachable: {error}</p>}
       {health && (
         <p>
