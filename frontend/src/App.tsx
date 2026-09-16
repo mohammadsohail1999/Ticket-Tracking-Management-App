@@ -1,28 +1,29 @@
-import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import GuestOnlyRoute from './routes/GuestOnlyRoute'
+import ProtectedRoute from './routes/ProtectedRoute'
+import AppLayout from './layouts/AppLayout'
+import LoginPage from './pages/LoginPage'
+import HomePage from './pages/HomePage'
 import './App.css'
 
 function App() {
-  const [health, setHealth] = useState(null)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then(setHealth)
-      .catch((err) => setError(err.message))
-  }, [])
-
   return (
-    <div>
-      <h1>Ticket Tracking App</h1>
-      {error && <p>Backend unreachable: {error}</p>}
-      {health && (
-        <p>
-          Backend status: {health.status} — database: {health.database}
-        </p>
-      )}
-      {!health && !error && <p>Checking backend...</p>}
-    </div>
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <GuestOnlyRoute>
+            <LoginPage />
+          </GuestOnlyRoute>
+        }
+      />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+        </Route>
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 

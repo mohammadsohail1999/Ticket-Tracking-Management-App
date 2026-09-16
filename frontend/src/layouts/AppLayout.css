@@ -1,0 +1,17 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.app-content {
+  flex: 1;
+  padding: 32px;
+}
+
+.full-page-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+}
