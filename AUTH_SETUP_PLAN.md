@@ -4,7 +4,7 @@
 
 **Status:**
 - ✅ **Plan 1 — TS migration**: implemented and committed (`c4f3761`, "Migrate backend from CommonJS JS to TypeScript (ESM, native Node execution)"). Kept below for reference/context.
-- ⏳ **Plan 2 — Better Auth setup**: not yet implemented. Written against the pre-migration CommonJS backend — before implementing, re-check the file paths/import styles against the now-TypeScript/ESM backend (e.g. `require(...)` → `import ... from "...ts"`, `module.exports` → `export`, `src/lib/auth.js` → `src/lib/auth.ts`). The underlying design decisions (admin plugin, `disableSignUp`, email verification stub, etc.) are unaffected by the language change.
+- ✅ **Plan 2 — Better Auth setup**: implemented and manually verified end-to-end. Kept below for reference/context; see "What was actually built" and the corrected "Verification" section near the end of Plan 2 for what changed versus the original write-up.
 
 ---
 
@@ -134,8 +134,9 @@ Include a short comment explaining why `disableSignUp` doesn't block `admin.crea
 
 ## 3. Prisma schema + migration
 
-1. With `lib/auth.ts` written, run: `npx @better-auth/cli generate --config src/lib/auth.ts --output prisma/schema.prisma` (from `backend/`). Inspect the diff — it should only add `role`, `banned`, `banReason`, `banExpires` to `User`, leaving `Session`/`Account`/`Verification` and existing `@@map`/index annotations untouched.
-   - If the CLI doesn't cleanly resolve this config or clobbers the existing schema, fall back to hand-editing `schema.prisma` directly, adding to `User`:
+1. With `lib/auth.ts` written, run: `npx auth generate --config src/lib/auth.ts --output prisma/schema.prisma -y` (from `backend/`; the locally cached CLI resolves as `auth`, not `@better-auth/cli`). Inspect the diff — it adds `role`, `banned`, `banReason`, `banExpires` to `User` and **also `impersonatedBy` to `Session`** (a standard admin-plugin column for its impersonation feature, not mentioned in the original write-up — same category of accepted unused schema noise as the ban fields), leaving `Account`/`Verification` and existing `@@map`/index annotations untouched. The generated `role` field has no DB-level default (`role String?`, not `@default("agent")`) — the app supplies `"agent"` explicitly at creation time instead, which is fine.
+   - **Also confirm the `generator client` block is untouched.** This project uses the new `prisma-client` generator (`moduleFormat = "esm"`, `generatedFileExtension`/`importFileExtension = "ts"`, from the TS migration) rather than the legacy `prisma-client-js` generator Better Auth's own docs/examples assume — the CLI's model diff should not revert or duplicate this block.
+   - If the CLI doesn't cleanly resolve this config, clobbers the existing schema, or reverts the generator block, fall back to hand-editing `schema.prisma` directly, adding to `User`:
      ```prisma
      role       String?   @default("agent")
      banned     Boolean?  @default(false)
@@ -224,15 +225,32 @@ Steps 1–3 come first since everything downstream imports `lib/auth.ts` and ass
 
 ## Verification (manual, from `backend/` with `npm run dev` running)
 
-1. `curl -i http://localhost:4000/api/auth/session` → JSON response (not Express's default 404 HTML), confirming the handler is mounted.
-2. Bootstrap admin via `create-admin` CLI (above); re-run it → should report the user already exists rather than erroring.
+1. `curl -i http://localhost:4000/api/auth/get-session` → JSON response (not Express's default 404 HTML), confirming the handler is mounted. (The original write-up said `/api/auth/session` — that path 404s; Better Auth's actual REST path is `get-session`.)
+2. Bootstrap admin via `create-admin` CLI (above); re-run it → prompts "Found N existing users. Create an admin user anyway?" rather than erroring (answer `n`/`-y`/`--force` as appropriate).
 3. Sign in: `curl -i -c cookies.txt -X POST http://localhost:4000/api/auth/sign-in/email -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"..."}'` → `200` + `Set-Cookie` (confirms `emailVerified: true` propagated correctly).
 4. Create an agent as the admin: `curl -i -b cookies.txt -X POST http://localhost:4000/api/admin/users -H "Content-Type: application/json" -d '{"email":"agent1@example.com","password":"...","name":"Agent One","role":"agent"}'` → `201`.
 5. Sign in as the new agent → `200` (confirms `emailVerified: true` works for admin-controller-created users too).
 6. `POST /api/admin/users` with no cookie → `401`. Same request signed in as the **agent** → `403`.
 7. `POST /api/auth/sign-up/email` unauthenticated → rejected (confirms `disableSignUp: true` is enforced).
-8. Trigger `POST /api/auth/forget-password` for a known user → confirm the `console.log` stub fires in the server terminal.
+8. Trigger `POST /api/auth/request-password-reset` (not `/forget-password`, which 404s) for a known user with `{"email":"...","redirectTo":"..."}` → confirm the `console.log` stub fires in the server terminal.
 9. Repeat step 3 with `-H "Origin: http://localhost:5173"` → response should include `Access-Control-Allow-Origin: http://localhost:5173` and `Access-Control-Allow-Credentials: true`.
+
+## What was actually built
+
+Implemented exactly as planned, with the corrections noted above (CLI resolves as `auth` not `@better-auth/cli`; `impersonatedBy` column; two endpoint-path corrections in Verification). `err.status === "CONFLICT" ? 409 : 400` in the original `adminController.ts` sketch was replaced with `err instanceof APIError` (imported from `better-auth`) using `err.statusCode`/`err.body?.message`, which covers all Better Auth error statuses generically instead of special-casing one.
+
+## Verification performed
+
+All 9 steps above ran successfully against the real dev DB and dev server: handler mount confirmed via `get-session`; admin bootstrap and re-run-prompts-instead-of-erroring both confirmed; admin sign-in returned `200` + session cookie; admin successfully created an agent (`201`, `emailVerified: true`); the new agent signed in (`200`); unauthenticated and agent-authenticated `POST /api/admin/users` correctly returned `401`/`403`; public `/sign-up/email` was rejected (`400`); the password-reset stub logged the reset URL to the console; and CORS headers (`Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials`) were present and correct throughout. `npm run typecheck` passed with zero errors after all new/edited files.
+
+## Addendum: `role` converted to a Postgres enum
+
+After initial implementation, `User.role` was changed from `String?` to a Prisma `enum Role { admin agent }` (`role Role? @default(agent)`), restricting the column to exactly those two values at the database level. This was a deliberate choice made with the tradeoff explicitly surfaced: Better Auth's admin plugin documents `role` as capable of holding **multiple roles as a comma-separated string** (its `set-role` endpoint accepts `role: string | string[]`), which a strict enum column can never store — so this permanently forecloses ever using that multi-role feature, and any future code path that tries to write an unexpected/combined role string will fail at the database rather than being caught by validation. Accepted because this app only ever assigns a single role per user.
+
+Implementation notes:
+- The new `prisma-client` generator (this project's TS-migration choice) emits Prisma enums as a `const` object + derived union type, **not** the TS `enum` keyword — confirmed compatible with `erasableSyntaxOnly` in `tsconfig.json` by inspecting the generated `src/generated/prisma/enums.ts` after regenerating.
+- `prisma migrate dev` refuses non-interactively when a column type change looks destructive (String → enum is flagged as "would be dropped and recreated, data loss"), even with `--create-only`. The migration was hand-written instead (`prisma/migrations/20260914111642_add_role_enum/migration.sql`): `CREATE TYPE "Role" AS ENUM (...)` followed by `ALTER COLUMN "role" TYPE "Role" USING ("role"::"Role")`, which safely casts existing `'admin'`/`'agent'`/`NULL` values with zero data loss, then applied via `prisma migrate deploy`. Verified by re-querying all existing users before/after — all three (`null`, `admin`, `agent`) round-tripped correctly.
+- Writes through Better Auth's Prisma adapter (`auth.api.createUser` with `role: "agent"`) were re-verified against the new enum column and still succeed — the adapter just passes the plain string, which Prisma accepts for a matching enum member.
 
 ## Follow-up (flagged, not part of this implementation)
 
