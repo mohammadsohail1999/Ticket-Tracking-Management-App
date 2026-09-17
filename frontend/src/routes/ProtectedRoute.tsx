@@ -1,13 +1,18 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useSession } from '../lib/auth-client'
-import type { AuthRedirectState } from '../types/auth'
+import { Loader2Icon } from 'lucide-react'
+import { useSession } from '@/lib/auth-client'
+import type { AuthRedirectState } from '@/types/auth'
 
 export default function ProtectedRoute() {
   const { data: session, isPending } = useSession()
   const location = useLocation()
 
   if (isPending) {
-    return <p className="flex min-h-svh items-center justify-center">Loading…</p>
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   if (!session) {

@@ -3,8 +3,27 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { signIn } from '../lib/auth-client'
-import type { AuthRedirectState } from '../types/auth'
+import { TriangleAlertIcon } from 'lucide-react'
+import { signIn } from '@/lib/auth-client'
+import type { AuthRedirectState } from '@/types/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email address.'),
@@ -20,11 +39,7 @@ export default function LoginPage() {
   const state = location.state as AuthRedirectState | null
   const redirectTo = state?.from?.pathname ?? '/'
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   })
@@ -48,52 +63,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
-      <form
-        className="flex w-full max-w-[360px] flex-col gap-4 text-left"
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-      >
-        <h1 className="mb-2 text-center text-[36px] font-medium -tracking-[1.68px] text-text-h font-sans lg:text-[56px]">
-          Sign in
-        </h1>
-        {formError && (
-          <p className="rounded-md border border-accent-border bg-accent-bg px-3 py-2.5 text-sm text-accent">
-            {formError}
-          </p>
-        )}
-        <label className="flex flex-col gap-1.5 text-[15px] text-text-h">
-          Email
-          <input
-            type="email"
-            autoComplete="email"
-            className="rounded-md border border-border bg-bg px-3 py-2.5 text-text-h focus:outline-2 focus:outline-accent-border focus:outline-offset-1"
-            {...register('email')}
-          />
-          {errors.email && (
-            <span className="text-[13px] text-accent">{errors.email.message}</span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1.5 text-[15px] text-text-h">
-          Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            className="rounded-md border border-border bg-bg px-3 py-2.5 text-text-h focus:outline-2 focus:outline-accent-border focus:outline-offset-1"
-            {...register('password')}
-          />
-          {errors.password && (
-            <span className="text-[13px] text-accent">{errors.password.message}</span>
-          )}
-        </label>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="cursor-pointer rounded-md border border-accent-border bg-accent px-3 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+    <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Sign in</CardTitle>
+          <CardDescription>
+            Enter your email and password to access your tickets.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              noValidate
+              className="flex flex-col gap-4"
+            >
+              {formError && (
+                <Alert variant="destructive">
+                  <TriangleAlertIcon />
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="mt-2 w-full"
+              >
+                {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
