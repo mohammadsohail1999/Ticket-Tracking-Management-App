@@ -40,3 +40,21 @@ export async function createUser(req: Request, res: Response) {
     res.status(500).json({ error: "Could not create user" });
   }
 }
+
+export async function listUsers(req: Request, res: Response) {
+  try {
+    const result = await auth.api.listUsers({
+      // No pagination UI yet; explicit high limit avoids the admin plugin's
+      // default page size silently truncating the list.
+      query: { limit: 1000 },
+      headers: fromNodeHeaders(req.headers),
+    });
+    res.status(200).json({ users: result.users });
+  } catch (err) {
+    if (err instanceof APIError) {
+      res.status(err.statusCode || 400).json({ error: err.body?.message || "Could not list users" });
+      return;
+    }
+    res.status(500).json({ error: "Could not list users" });
+  }
+}

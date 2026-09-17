@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { LogOutIcon, TicketIcon } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -34,9 +34,19 @@ export default function Navbar() {
 
   return (
     <nav className="flex items-center justify-between border-b border-border bg-background px-8 py-4">
-      <div className="flex items-center gap-2 font-sans font-medium text-foreground">
-        <TicketIcon className="size-5 text-primary" />
-        Ticket Tracking App
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 font-sans font-medium text-foreground">
+          <TicketIcon className="size-5 text-primary" />
+          Ticket Tracking App
+        </div>
+        {user?.role === 'admin' && (
+          <Link
+            to="/users"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Users
+          </Link>
+        )}
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
