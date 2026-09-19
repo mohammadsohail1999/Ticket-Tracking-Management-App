@@ -23,8 +23,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     req.user = result.user;
     req.session = result.session;
     next();
-  } catch {
-    res.status(500).json({ error: "Internal server error" });
+  } catch (err) {
+    next(err);
   }
 }
 
