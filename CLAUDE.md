@@ -52,3 +52,5 @@ Better Auth, email/password, **admin-provisioned only** (no public sign-up). Rat
 ## Subagents
 
 `.claude/agents/security-auditor.md` audits for security issues; read-only by default, edits only when a follow-up invocation names findings to fix.
+
+`.claude/agents/e2e-test-writer.md` writes and runs Playwright specs in `e2e/`. **Any request to write or extend E2E tests goes to this agent automatically** (`subagent_type: "e2e-test-writer"`) — the user shouldn't have to name it. It never edits `backend/` or `frontend/`; app bugs it finds are reported back.
