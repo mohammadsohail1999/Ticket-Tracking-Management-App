@@ -10,11 +10,14 @@ const auth = betterAuth({
   trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:5173"],
   // Explicit so protection doesn't silently depend on NODE_ENV=production
   // being set at deploy time (Better Auth's default is `enabled: isProduction`).
+  // Deliberately off only for an explicit NODE_ENV of "development"/"test" —
+  // never "anything but production" — so an unset NODE_ENV in a deploy still
+  // leaves it on. Dev and the E2E suite turn it off to avoid 429s on repeated logins.
   // Sign-in/sign-up/change-password/change-email get a stricter built-in
   // special rule (3 requests / 10s) automatically once enabled; this window/max
   // is the general fallback applied to other endpoints.
   rateLimit: {
-    enabled: true,
+    enabled: !["development", "test"].includes(process.env.NODE_ENV ?? ""),
     window: 60,
     max: 30,
   },

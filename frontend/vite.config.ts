@@ -13,7 +13,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:4000',
+      // API_PROXY_TARGET lets the E2E stack (e2e/) point at its own backend.
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:4000',
     },
   },
 })
