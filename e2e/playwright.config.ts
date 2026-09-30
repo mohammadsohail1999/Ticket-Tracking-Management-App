@@ -21,7 +21,15 @@ export default defineConfig({
     trace: "on-first-retry",
   },
 
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    // Signs in once per run and saves storageState for the admin and agent roles.
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+    },
+  ],
 
   // reuseExistingServer is false on purpose: attaching to a `npm run dev`
   // server would run tests against the dev database. Fail loudly instead.
