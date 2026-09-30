@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import auth from "../lib/auth.ts";
+import prisma from "../lib/prisma.ts";
 import { AppError } from "../lib/errors.ts";
 
 export async function createUser(req: Request, res: Response) {
@@ -47,11 +48,19 @@ export async function createUser(req: Request, res: Response) {
 }
 
 export async function listUsers(req: Request, res: Response) {
-  const result = await auth.api.listUsers({
-    // No pagination UI yet; explicit high limit avoids the admin plugin's
-    // default page size silently truncating the list.
-    query: { limit: 1000 },
-    headers: fromNodeHeaders(req.headers),
+  // Read-only, and requireAuth + requireRole("admin") already guard the route,
+  // so query Prisma directly rather than round-tripping through the admin
+  // plugin. Explicit select mirrors frontend/src/types/user.ts.
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      banned: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" },
   });
-  res.status(200).json({ users: result.users });
+  res.status(200).json({ users });
 }
