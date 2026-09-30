@@ -13,6 +13,21 @@ export async function createUser(req: Request, res: Response) {
     throw new AppError('role must be "admin" or "agent"', 400);
   }
 
+  // The admin plugin's createUser doesn't enforce the password policy that
+  // sign-up, reset-password and set-user-password do, so apply it here using
+  // Better Auth's own limits to keep the two in sync.
+  const { minPasswordLength, maxPasswordLength } = (await auth.$context).password.config;
+  if (
+    typeof password !== "string" ||
+    password.length < minPasswordLength ||
+    password.length > maxPasswordLength
+  ) {
+    throw new AppError(
+      `password must be between ${minPasswordLength} and ${maxPasswordLength} characters`,
+      400,
+    );
+  }
+
   const result = await auth.api.createUser({
     body: {
       email,

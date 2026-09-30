@@ -37,7 +37,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as AuthRedirectState | null
-  const redirectTo = state?.from?.pathname ?? '/'
+  const redirectTo = state?.from ?? '/'
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
