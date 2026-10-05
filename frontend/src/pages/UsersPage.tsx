@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { XCircleIcon } from 'lucide-react'
-import type { ListUsersResponse, User } from '@/types/user'
+import { useUsers } from '@/hooks/useUsers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,17 +14,8 @@ import {
 } from '@/components/ui/table'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/admin/users')
-      .then((res) => res.json() as Promise<ListUsersResponse>)
-      .then((data) => setUsers(data.users))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : String(err)),
-      )
-  }, [])
+  const { data, error } = useUsers()
+  const users = data?.users
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,7 +37,7 @@ export default function UsersPage() {
           {error && (
             <Alert variant="destructive">
               <XCircleIcon />
-              <AlertDescription>Could not load users: {error}</AlertDescription>
+              <AlertDescription>Could not load users: {error.message}</AlertDescription>
             </Alert>
           )}
 

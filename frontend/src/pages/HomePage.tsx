@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { CheckCircle2Icon, XCircleIcon } from 'lucide-react'
-import type { HealthResponse } from '@/types/health'
+import { useHealth } from '@/hooks/useHealth'
 import { useSession } from '@/lib/auth-client'
 import {
   Card,
@@ -14,17 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function HomePage() {
   const { data: session } = useSession()
-  const [health, setHealth] = useState<HealthResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json() as Promise<HealthResponse>)
-      .then(setHealth)
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : String(err)),
-      )
-  }, [])
+  const { data: health, error } = useHealth()
 
   const firstName = session?.user?.name?.split(' ')[0]
 
@@ -51,7 +40,7 @@ export default function HomePage() {
           {error && (
             <div className="flex items-center gap-2 text-destructive">
               <XCircleIcon className="size-4 shrink-0" />
-              <span className="text-sm">Backend unreachable: {error}</span>
+              <span className="text-sm">Backend unreachable: {error.message}</span>
             </div>
           )}
           {health && (

@@ -18,6 +18,7 @@ Scripts are in each `package.json`; only the non-obvious ones are listed here.
 **Frontend**
 - `npm run build` is `tsc -b && vite build` — type errors fail it; `npm run typecheck` is the same check alone.
 - `npm run lint` runs `oxlint`, not eslint.
+- `npm test` runs Vitest + React Testing Library (jsdom); `npm run test:watch` for watch mode. Tests are colocated as `*.test.tsx` under `src/`, so `tsc -b` typechecks them. Vitest globals are off — import `describe`/`it`/`expect`/`vi` from `vitest` (`src/test/setup.ts` registers jest-dom matchers and RTL cleanup). Stub the network with `vi.spyOn(api, 'get')` from `@/lib/api` rather than mocking hooks, and use a fresh `QueryClient({ defaultOptions: { queries: { retry: false } } })` per render, not the shared `queryClient`.
 
 **E2E**
 - `npm run db:prepare` (also Playwright's `globalSetup`) creates `ticket_tracking_test`, runs `migrate deploy`, and reseeds — **the test DB is wiped on every run**.
@@ -33,6 +34,7 @@ Scripts are in each `package.json`; only the non-obvious ones are listed here.
 - **PrismaClient needs the `PrismaPg` driver adapter** — always `import prisma from "../lib/prisma.ts"`; never instantiate it elsewhere. Import generated types from `../generated/prisma/client.ts` (git-ignored, output of `prisma generate`), not `@prisma/client`.
 - Frontend API calls use relative `/api/...` (Vite proxies to :4000, or `API_PROXY_TARGET`) — never hardcode a backend host.
 - **E2E isolation depends on `dotenv/config` not overriding already-set vars**: `e2e/playwright.config.ts` injects `DATABASE_URL`, `PORT`, `FRONTEND_URL` etc. (`BACKEND_ENV` in `e2e/support/env.ts`) into spawned processes, beating `backend/.env`. Its `webServer` entries use `reuseExistingServer: false` on purpose — reusing a dev server would hit the dev DB.
+- **Server data goes through TanStack Query v5**: one `queryClient` in `frontend/src/lib/query-client.ts`, HTTP via the shared axios instance `api` (`lib/api.ts`; its interceptor turns every failure into an `ApiError` with `status`, 0 for network errors), and one `use*` hook per resource in `frontend/src/hooks/` built on `queryOptions()`. Mutations should `invalidateQueries` the affected key. `Navbar` calls `queryClient.clear()` on sign-out. Session state stays on Better Auth's `useSession` — don't move it into Query.
 - Tailwind v4, CSS-first config in `frontend/src/index.css` (no `tailwind.config.js`, no per-component `.css`). shadcn/ui installed manually: add primitives with `npx shadcn@latest add <component>` from `frontend/`.
 - `@/*` → `frontend/src/*`, defined in three places that must stay in sync: `tsconfig.json`, `tsconfig.app.json`, `vite.config.ts`.
 - **Dark mode is OS-preference only** (`prefers-color-scheme` in `index.css`). Don't add a `.dark` class, shadcn's `@custom-variant dark` line, or a `ThemeProvider` — nothing would use them. Same reason `sonner`'s `<Toaster />` (in `App.tsx`) has no provider.

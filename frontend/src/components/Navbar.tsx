@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { LogOutIcon, TicketIcon } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
+import { queryClient } from '@/lib/query-client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -29,6 +30,8 @@ export default function Navbar() {
 
   async function handleLogout() {
     await signOut()
+    // Drop cached server data so the next login never sees this user's data.
+    queryClient.clear()
     navigate('/login', { replace: true })
   }
 
