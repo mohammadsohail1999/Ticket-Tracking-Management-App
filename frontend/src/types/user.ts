@@ -12,3 +12,14 @@ export type User = {
 export type ListUsersResponse = {
   users: User[];
 };
+
+// No `role`: the UI only creates agents (the backend defaults the role).
+export type CreateUserInput = {
+  name: string;
+  email: string;
+  password: string;
+};
+
+export type CreateUserResponse = {
+  user: User;
+};

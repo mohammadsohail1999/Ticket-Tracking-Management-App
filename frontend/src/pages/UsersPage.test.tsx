@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '@/lib/api'
 import { renderWithProviders } from '@/test/render'
@@ -125,6 +125,19 @@ describe('UsersPage', () => {
       expect(
         within(row).getByText(new Date(user.createdAt).toLocaleDateString()),
       ).toBeInTheDocument()
+    })
+  })
+
+  describe('create user', () => {
+    it('opens the create-user dialog from the button', async () => {
+      mockUsers([makeUser()])
+      renderPage()
+      await screen.findByText('Ada Admin')
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /create user/i }))
+
+      expect(await screen.findByRole('dialog')).toHaveTextContent('Create user')
     })
   })
 

@@ -1,5 +1,8 @@
-import { XCircleIcon } from 'lucide-react'
+import { useState } from 'react'
+import { PlusIcon, XCircleIcon } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
+import CreateUserDialog from '@/components/CreateUserDialog'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,18 +18,26 @@ import {
 
 export default function UsersPage() {
   const { data, error } = useUsers()
+  const [createOpen, setCreateOpen] = useState(false)
   const users = data?.users
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-medium tracking-tight text-foreground lg:text-4xl">
-          Users
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          All admin and agent accounts in the system.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-medium tracking-tight text-foreground lg:text-4xl">
+            Users
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            All admin and agent accounts in the system.
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <PlusIcon />
+          Create user
+        </Button>
       </div>
+      <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <Card>
         <CardHeader>
