@@ -29,6 +29,7 @@ Scripts are in each `package.json`; only the non-obvious ones are listed here.
 ## Architecture notes
 
 - **Backend runs TS natively on Node ≥22.18** (no ts-node/tsx). Real ESM: relative imports need explicit `.ts` extensions. `erasableSyntaxOnly` is on — no `enum`, `namespace`, or constructor parameter properties.
+- **Backend request bodies are validated with zod**: define the schema in `backend/src/schemas/` and mount `validate(schema)` (`middleware/validate.ts`) after the auth guards. Failures become a `ValidationError` → 400 `{ error: "<field>: <msg>; ...", details: { fieldErrors } }`; `error` must stay a single string because the frontend `ApiError` reads it.
 - **Frontend TS setup intentionally differs** (`moduleResolution: "bundler"`, no `erasableSyntaxOnly`). Don't cross-apply tsconfig conventions.
 - Prisma config file is `backend/prisma7.config.ts`, not `prisma.config.ts`.
 - **PrismaClient needs the `PrismaPg` driver adapter** — always `import prisma from "../lib/prisma.ts"`; never instantiate it elsewhere. Import generated types from `../generated/prisma/client.ts` (git-ignored, output of `prisma generate`), not `@prisma/client`.

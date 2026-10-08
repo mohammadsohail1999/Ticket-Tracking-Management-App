@@ -61,23 +61,59 @@ test.describe("Admin provisioning: validation", () => {
     });
 
     expect(res.status()).toBe(400);
-    expect(await res.json()).toMatchObject({
-      error: "email, password, and name are required",
-    });
+    const { details } = await res.json();
+    expect(details.fieldErrors.name).toBeDefined();
+    expect(details.fieldErrors.password).toBeDefined();
+    expect(details.fieldErrors.email).toBeUndefined();
   });
 
-  test("rejects an unknown role", async ({ adminApi }) => {
+  test("rejects an unknown role and creates no account", async ({ adminApi, anonApi }) => {
+    const email = uniqueEmail("badrole");
+
     const res = await adminApi.post("/api/admin/users", {
-      data: {
-        email: uniqueEmail("badrole"),
-        password: NEW_USER_PASSWORD,
-        name: "Bad Role",
-        role: "superuser",
-      },
+      data: { email, password: NEW_USER_PASSWORD, name: "Bad Role", role: "superuser" },
     });
 
     expect(res.status()).toBe(400);
-    expect(await res.json()).toMatchObject({ error: 'role must be "admin" or "agent"' });
+    const { details } = await res.json();
+    expect(details.fieldErrors.role).toBeDefined();
+
+    const signIn = await anonApi.post("/api/auth/sign-in/email", {
+      data: { email, password: NEW_USER_PASSWORD },
+    });
+    expect(signIn.status()).toBe(401);
+  });
+
+  test("rejects an invalid email and creates no account", async ({ adminApi }) => {
+    const email = "not-an-email";
+
+    const res = await adminApi.post("/api/admin/users", {
+      data: { email, password: NEW_USER_PASSWORD, name: "Bad Email" },
+    });
+
+    expect(res.status()).toBe(400);
+    const { details } = await res.json();
+    expect(details.fieldErrors.email).toBeDefined();
+
+    const { users } = await (await adminApi.get("/api/admin/users")).json();
+    expect(users.map((u: { email: string }) => u.email)).not.toContain(email);
+  });
+
+  test("rejects a non-string name and creates no account", async ({ adminApi, anonApi }) => {
+    const email = uniqueEmail("numname");
+
+    const res = await adminApi.post("/api/admin/users", {
+      data: { email, password: NEW_USER_PASSWORD, name: 123 },
+    });
+
+    expect(res.status()).toBe(400);
+    const { details } = await res.json();
+    expect(details.fieldErrors.name).toBeDefined();
+
+    const signIn = await anonApi.post("/api/auth/sign-in/email", {
+      data: { email, password: NEW_USER_PASSWORD },
+    });
+    expect(signIn.status()).toBe(401);
   });
 
   test("rejects a duplicate email", async ({ adminApi }) => {

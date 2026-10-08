@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { APIError } from "better-auth";
-import { AppError } from "../lib/errors.ts";
+import { AppError, ValidationError } from "../lib/errors.ts";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -11,6 +11,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
 
   res.status(status).json({
     error: message,
+    ...(err instanceof ValidationError ? { details: err.details } : {}),
     ...(isDev && err instanceof Error ? { stack: err.stack } : {}),
   });
 }
