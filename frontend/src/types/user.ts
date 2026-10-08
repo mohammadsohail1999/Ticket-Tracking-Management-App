@@ -1,3 +1,5 @@
+import type { UpdateUserBody } from '@core/schema/user.ts'
+
 export type Role = "admin" | "agent";
 
 export type User = {
@@ -21,5 +23,11 @@ export type CreateUserInput = {
 };
 
 export type CreateUserResponse = {
+  user: User;
+};
+
+export type UpdateUserInput = UpdateUserBody;
+
+export type UpdateUserResponse = {
   user: User;
 };

@@ -2,7 +2,7 @@
 
 AI-powered ticket management system. Scope is in `project.md`; the phased build plan and open decisions (AI provider, email ingestion) are in `IMPLEMENTATION_PLAN.md` — check it before starting new work.
 
-Three independent npm projects, no workspace tooling — install/run in each: `backend/` (Express 5, Prisma 7, PostgreSQL), `frontend/` (React 19 + Vite 8), `e2e/` (Playwright, no specs yet).
+Four independent npm projects, no workspace tooling — install/run in each: `backend/` (Express 5, Prisma 7, PostgreSQL), `frontend/` (React 19 + Vite 8), `e2e/` (Playwright), and `core/` (shared zod schemas, no scripts — just `npm install`).
 
 ## Commands
 
@@ -29,7 +29,7 @@ Scripts are in each `package.json`; only the non-obvious ones are listed here.
 ## Architecture notes
 
 - **Backend runs TS natively on Node ≥22.18** (no ts-node/tsx). Real ESM: relative imports need explicit `.ts` extensions. `erasableSyntaxOnly` is on — no `enum`, `namespace`, or constructor parameter properties.
-- **Backend request bodies are validated with zod**: define the schema in `backend/src/schemas/` and mount `validate(schema)` (`middleware/validate.ts`) after the auth guards. Failures become a `ValidationError` → 400 `{ error: "<field>: <msg>; ...", details: { fieldErrors } }`; `error` must stay a single string because the frontend `ApiError` reads it.
+- **Backend request bodies are validated with zod**: define the schema in `core/schema/` (shared with the frontend forms) and mount `validate(schema)` (`middleware/validate.ts`) after the auth guards. Failures become a `ValidationError` → 400 `{ error: "<field>: <msg>; ...", details: { fieldErrors } }`; `error` must stay a single string because the frontend `ApiError` reads it.
 - **Frontend TS setup intentionally differs** (`moduleResolution: "bundler"`, no `erasableSyntaxOnly`). Don't cross-apply tsconfig conventions.
 - Prisma config file is `backend/prisma7.config.ts`, not `prisma.config.ts`.
 - **PrismaClient needs the `PrismaPg` driver adapter** — always `import prisma from "../lib/prisma.ts"`; never instantiate it elsewhere. Import generated types from `../generated/prisma/client.ts` (git-ignored, output of `prisma generate`), not `@prisma/client`.
@@ -37,7 +37,8 @@ Scripts are in each `package.json`; only the non-obvious ones are listed here.
 - **E2E isolation depends on `dotenv/config` not overriding already-set vars**: `e2e/playwright.config.ts` injects `DATABASE_URL`, `PORT`, `FRONTEND_URL` etc. (`BACKEND_ENV` in `e2e/support/env.ts`) into spawned processes, beating `backend/.env`. Its `webServer` entries use `reuseExistingServer: false` on purpose — reusing a dev server would hit the dev DB.
 - **Server data goes through TanStack Query v5**: one `queryClient` in `frontend/src/lib/query-client.ts`, HTTP via the shared axios instance `api` (`lib/api.ts`; its interceptor turns every failure into an `ApiError` with `status`, 0 for network errors), and one `use*` hook per resource in `frontend/src/hooks/` built on `queryOptions()`. Mutations should `invalidateQueries` the affected key. `Navbar` calls `queryClient.clear()` on sign-out. Session state stays on Better Auth's `useSession` — don't move it into Query.
 - Tailwind v4, CSS-first config in `frontend/src/index.css` (no `tailwind.config.js`, no per-component `.css`). shadcn/ui installed manually: add primitives with `npx shadcn@latest add <component>` from `frontend/`.
-- `@/*` → `frontend/src/*`, defined in three places that must stay in sync: `tsconfig.json`, `tsconfig.app.json`, `vite.config.ts`.
+- `@/*` → `frontend/src/*`, defined in three places that must stay in sync: `tsconfig.json`, `tsconfig.app.json`, `vite.config.ts`. `@core/*` → `core/*` is defined in the same three places (backend uses relative `../../../core/...` imports instead, since Node ignores tsconfig `paths`).
+- **`core/` is imported as raw `.ts` by both backend and frontend**, so its files must satisfy both TS setups: explicit `.ts` import extensions, no `enum`/`namespace`/parameter properties. It has its own `node_modules` (a node/tsc import resolves `zod` from the importing file's location); keep its `zod` version equal to the other two, and Vite's `resolve.dedupe: ['zod']` keeps the bundle to one copy. Deploying `backend/` alone would miss `core/`.
 - **Dark mode is OS-preference only** (`prefers-color-scheme` in `index.css`). Don't add a `.dark` class, shadcn's `@custom-variant dark` line, or a `ThemeProvider` — nothing would use them. Same reason `sonner`'s `<Toaster />` (in `App.tsx`) has no provider.
 
 ## Authentication

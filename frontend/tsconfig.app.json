@@ -22,7 +22,8 @@
     "forceConsistentCasingInFileNames": true,
 
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@core/*": ["../core/*"]
     }
   },
   "include": ["src"]

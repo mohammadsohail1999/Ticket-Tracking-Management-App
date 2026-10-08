@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { PlusIcon, XCircleIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon, XCircleIcon } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
-import CreateUserDialog from '@/components/CreateUserDialog'
+import UserFormDialog from '@/components/UserFormDialog'
+import type { User } from '@/types/user'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +20,7 @@ import {
 export default function UsersPage() {
   const { data, error } = useUsers()
   const [createOpen, setCreateOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const users = data?.users
 
   return (
@@ -37,7 +39,17 @@ export default function UsersPage() {
           Create user
         </Button>
       </div>
-      <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <UserFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {editingUser && (
+        <UserFormDialog
+          key={editingUser.id}
+          open
+          user={editingUser}
+          onOpenChange={(open) => {
+            if (!open) setEditingUser(null)
+          }}
+        />
+      )}
 
       <Card>
         <CardHeader>
@@ -61,6 +73,9 @@ export default function UsersPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -83,12 +98,23 @@ export default function UsersPage() {
                     <TableCell className="text-muted-foreground">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Edit ${user.name}`}
+                        onClick={() => setEditingUser(user)}
+                      >
+                        <PencilIcon />
+                        Edit
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {!users &&
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 5 }).map((_, j) => (
+                      {Array.from({ length: 6 }).map((_, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-5 w-full" />
                         </TableCell>

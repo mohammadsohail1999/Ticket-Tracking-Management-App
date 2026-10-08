@@ -9,7 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
+      '@core': path.resolve(import.meta.dirname, '../core'),
     },
+    // core/ has its own zod install; resolve from here so there's one copy.
+    dedupe: ['zod'],
   },
   test: {
     environment: 'jsdom',
@@ -17,6 +20,8 @@ export default defineConfig({
     css: false,
   },
   server: {
+    // Lets Vite serve ../core (shared schemas), which sits outside this project.
+    fs: { allow: ['..'] },
     proxy: {
       // API_PROXY_TARGET lets the E2E stack (e2e/) point at its own backend.
       '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:4000',

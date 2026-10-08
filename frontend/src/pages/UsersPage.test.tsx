@@ -42,7 +42,7 @@ describe('UsersPage', () => {
       expect(screen.getByText('Loading...')).toBeInTheDocument()
       // 1 header row + 5 skeleton rows
       expect(screen.getAllByRole('row')).toHaveLength(6)
-      expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(25)
+      expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(30)
       expect(screen.queryByText('Ada Admin')).not.toBeInTheDocument()
     })
   })
@@ -138,6 +138,25 @@ describe('UsersPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /create user/i }))
 
       expect(await screen.findByRole('dialog')).toHaveTextContent('Create user')
+    })
+  })
+
+  describe('edit user', () => {
+    it('opens the edit dialog prefilled with the clicked user', async () => {
+      mockUsers([
+        makeUser(),
+        makeUser({ id: 'u2', name: 'Alan Agent', email: 'alan@example.com', role: 'agent' }),
+      ])
+      renderPage()
+      await screen.findByText('Alan Agent')
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alan Agent' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveTextContent('Edit user')
+      expect(within(dialog).getByLabelText('Name')).toHaveValue('Alan Agent')
+      expect(within(dialog).getByLabelText('Email')).toHaveValue('alan@example.com')
     })
   })
 
