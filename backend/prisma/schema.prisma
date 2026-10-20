@@ -38,6 +38,10 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  // Soft delete: the row is kept (future ticket history) but the user is also
+  // banned so Better Auth refuses sign-in.
+  deletedAt DateTime?
+
   @@unique([email])
   @@map("user")
 }

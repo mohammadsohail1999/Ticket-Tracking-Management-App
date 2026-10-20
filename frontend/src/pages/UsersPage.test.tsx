@@ -11,6 +11,7 @@ const makeUser = (overrides: Partial<User> = {}): User => ({
   email: 'ada@example.com',
   role: 'admin',
   banned: false,
+  deletedAt: null,
   createdAt: '2026-03-15T12:00:00.000Z',
   ...overrides,
 })
@@ -157,6 +158,44 @@ describe('UsersPage', () => {
       expect(dialog).toHaveTextContent('Edit user')
       expect(within(dialog).getByLabelText('Name')).toHaveValue('Alan Agent')
       expect(within(dialog).getByLabelText('Email')).toHaveValue('alan@example.com')
+    })
+  })
+
+  describe('delete user', () => {
+    const agent = makeUser({ id: 'u2', name: 'Alan Agent', email: 'alan@example.com', role: 'agent' })
+
+    it('offers Delete on agent rows but not on admin rows', async () => {
+      mockUsers([makeUser(), agent])
+      renderPage()
+      await screen.findByText('Alan Agent')
+
+      expect(screen.getByRole('button', { name: 'Delete Alan Agent' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Delete Ada Admin' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit Ada Admin' })).toBeInTheDocument()
+    })
+
+    it('opens the confirmation dialog for the clicked user', async () => {
+      mockUsers([makeUser(), agent])
+      renderPage()
+      await screen.findByText('Alan Agent')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Alan Agent' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveTextContent('Delete user')
+      expect(dialog).toHaveTextContent('Alan Agent')
+    })
+
+    it('shows a Deleted badge and no actions for deleted users', async () => {
+      mockUsers([makeUser({ ...agent, banned: true, deletedAt: '2026-03-16T12:00:00.000Z' })])
+      renderPage()
+
+      const row = (await screen.findByText('Alan Agent')).closest('tr')!
+      expect(within(row).getByText('Deleted')).toBeInTheDocument()
+      expect(within(row).queryByText('Banned')).not.toBeInTheDocument()
+      expect(within(row).queryByRole('button')).not.toBeInTheDocument()
+      // Still listed and counted.
+      expect(screen.getByText('1 total')).toBeInTheDocument()
     })
   })
 

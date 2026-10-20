@@ -13,6 +13,7 @@ const created: CreateUserResponse = {
     email: 'grace@example.com',
     role: 'agent',
     banned: false,
+    deletedAt: null,
     createdAt: '2026-03-15T12:00:00.000Z',
   },
 }
@@ -106,6 +107,7 @@ const existing: User = {
   email: 'grace@example.com',
   role: 'agent',
   banned: false,
+  deletedAt: null,
   createdAt: '2026-03-15T12:00:00.000Z',
 }
 

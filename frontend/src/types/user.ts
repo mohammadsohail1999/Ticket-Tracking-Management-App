@@ -8,6 +8,7 @@ export type User = {
   email: string;
   role: Role | null;
   banned: boolean | null;
+  deletedAt: string | null;
   createdAt: string;
 };
 
@@ -29,5 +30,9 @@ export type CreateUserResponse = {
 export type UpdateUserInput = UpdateUserBody;
 
 export type UpdateUserResponse = {
+  user: User;
+};
+
+export type DeleteUserResponse = {
   user: User;
 };
