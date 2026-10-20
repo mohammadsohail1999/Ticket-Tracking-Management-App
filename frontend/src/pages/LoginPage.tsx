@@ -50,7 +50,8 @@ export default function LoginPage() {
       const { error } = await signIn.email({ email, password })
       if (error) {
         setFormError(
-          error.status === 403
+          // A banned (or soft-deleted) user also gets a 403, but not because of email verification.
+          error.status === 403 && error.code !== 'BANNED_USER'
             ? 'Please verify your email address before signing in.'
             : error.message || 'Invalid email or password.',
         )

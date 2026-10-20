@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { PencilIcon, PlusIcon, XCircleIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon, Trash2Icon, XCircleIcon } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 import UserFormDialog from '@/components/UserFormDialog'
+import DeleteUserDialog from '@/components/DeleteUserDialog'
 import type { User } from '@/types/user'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ export default function UsersPage() {
   const { data, error } = useUsers()
   const [createOpen, setCreateOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const users = data?.users
 
   return (
@@ -47,6 +49,16 @@ export default function UsersPage() {
           user={editingUser}
           onOpenChange={(open) => {
             if (!open) setEditingUser(null)
+          }}
+        />
+      )}
+      {deletingUser && (
+        <DeleteUserDialog
+          key={deletingUser.id}
+          open
+          user={deletingUser}
+          onOpenChange={(open) => {
+            if (!open) setDeletingUser(null)
           }}
         />
       )}
@@ -91,23 +103,36 @@ export default function UsersPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.banned ? 'destructive' : 'outline'}>
-                        {user.banned ? 'Banned' : 'Active'}
+                      <Badge variant={user.deletedAt || user.banned ? 'destructive' : 'outline'}>
+                        {user.deletedAt ? 'Deleted' : user.banned ? 'Banned' : 'Active'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Edit ${user.name}`}
-                        onClick={() => setEditingUser(user)}
-                      >
-                        <PencilIcon />
-                        Edit
-                      </Button>
+                      {!user.deletedAt && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Edit ${user.name}`}
+                          onClick={() => setEditingUser(user)}
+                        >
+                          <PencilIcon />
+                          Edit
+                        </Button>
+                      )}
+                      {!user.deletedAt && user.role !== 'admin' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Delete ${user.name}`}
+                          onClick={() => setDeletingUser(user)}
+                        >
+                          <Trash2Icon />
+                          Delete
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -12,6 +12,7 @@ const publicUserSelect = {
   email: true,
   role: true,
   banned: true,
+  deletedAt: true,
   createdAt: true,
 } as const;
 
@@ -75,6 +76,7 @@ export async function updateUser(req: Request<{ id: string }, unknown, UpdateUse
 
   const existing = await prisma.user.findUnique({ where: { id }, select: publicUserSelect });
   if (!existing) throw new AppError("User not found", 404);
+  if (existing.deletedAt) throw new AppError("Deleted users cannot be edited", 409);
 
   if (existing.name === name && existing.email === email) {
     res.status(200).json({ user: existing });
@@ -100,4 +102,30 @@ export async function updateUser(req: Request<{ id: string }, unknown, UpdateUse
     }
     throw err;
   }
+}
+
+// Soft delete: keep the row (future ticket history) but ban the user so Better
+// Auth refuses sign-in, and drop their sessions so open tabs are signed out at
+// once. The email stays reserved, so re-creating it hits the duplicate check.
+export async function deleteUser(req: Request<{ id: string }>, res: Response) {
+  const { id } = req.params;
+
+  const existing = await prisma.user.findUnique({ where: { id }, select: publicUserSelect });
+  if (!existing) throw new AppError("User not found", 404);
+  // Enforced here, not just by hiding the button; also stops an admin deleting themselves.
+  if (existing.role === "admin") throw new AppError("Admin users cannot be deleted", 403);
+  if (existing.deletedAt) {
+    res.status(200).json({ user: existing });
+    return;
+  }
+
+  const [user] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), banned: true, banReason: "Deleted by admin" },
+      select: publicUserSelect,
+    }),
+    prisma.session.deleteMany({ where: { userId: id } }),
+  ]);
+  res.status(200).json({ user });
 }
