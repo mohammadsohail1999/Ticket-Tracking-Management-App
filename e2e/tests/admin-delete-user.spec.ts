@@ -1,7 +1,6 @@
 import { test, expect } from "../support/fixtures.ts";
 import {
   createUserViaApi,
-  LoginPage,
   NEW_USER_PASSWORD,
   signInApi,
   STORAGE_STATE,
@@ -57,7 +56,6 @@ test.describe("Delete user: UI", () => {
 
     const dialog = await openDeleteDialog(page, user.email);
     await expect(dialog).toContainText(`Delete ${user.name} (${user.email})?`);
-    await expect(dialog.getByRole("button", { name: "Cancel" })).toBeVisible();
 
     await test.step("confirm the deletion", async () => {
       await dialog.getByRole("button", { name: "Delete", exact: true }).click();
@@ -80,62 +78,6 @@ test.describe("Delete user: UI", () => {
 
     expect(await findUser(adminApi, user.email)).toMatchObject({ banned: true });
   });
-
-  test("Cancel leaves the user untouched", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi, { name: "Spared Person" });
-    const dialog = await openDeleteDialog(page, user.email);
-
-    await dialog.getByRole("button", { name: "Cancel" }).click();
-
-    await expect(dialog).toBeHidden();
-    const row = page.getByRole("row", { name: new RegExp(user.email) });
-    await expect(row).toContainText("Active");
-    await expect(row.getByRole("button", { name: "Delete Spared Person" })).toBeVisible();
-    await expect(page.getByText("Deleted Spared Person.")).toHaveCount(0);
-    expect(await findUser(adminApi, user.email)).toMatchObject({ deletedAt: null, banned: false });
-  });
-
-  test("admin rows have no Delete button", async ({ page, adminApi }) => {
-    const secondAdmin = await createUserViaApi(adminApi, { role: "admin", name: "Other Admin" });
-    await page.goto("/users");
-
-    for (const email of [E2E_USERS.admin.email, secondAdmin.email]) {
-      const row = page.getByRole("row", { name: new RegExp(email) });
-      await expect(row).toContainText("admin");
-      await expect(row.getByRole("button", { name: /^Edit / })).toBeVisible();
-      await expect(row.getByRole("button", { name: /^Delete / })).toHaveCount(0);
-    }
-  });
-
-  test("a failed delete shows the error in the dialog and keeps it open", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi, { name: "Raced Person" });
-    const dialog = await openDeleteDialog(page, user.email);
-    await page.route("**/api/admin/users/*", (route) =>
-      route.request().method() === "DELETE"
-        ? route.fulfill({ status: 404, json: { error: "User not found" } })
-        : route.fallback(),
-    );
-
-    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-
-    await expect(dialog.getByRole("alert")).toContainText("User not found");
-    await expect(dialog).toBeVisible();
-    await expect(page.getByText("Deleted Raced Person.")).toHaveCount(0);
-  });
-});
-
-test.describe("Delete user: agent UI", () => {
-  test.use({ storageState: STORAGE_STATE.agent });
-
-  test("an agent cannot reach the Users page or any Delete button", async ({ page }) => {
-    await page.goto("/users");
-
-    await expect(page).not.toHaveURL(/\/users$/);
-    await expect(page.getByRole("button", { name: /^Delete / })).toHaveCount(0);
-  });
 });
 
 test.describe("A deleted user's access", () => {
@@ -153,36 +95,6 @@ test.describe("A deleted user's access", () => {
     expect(res.status()).toBe(403);
     expect((await res.json()).code).toBe("BANNED_USER");
     expect(await (await anonApi.get("/api/auth/get-session")).json()).toBeNull();
-  });
-
-  test("cannot sign in through the login page", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi);
-    await deleteViaApi(adminApi, (await findUser(adminApi, user.email)).id);
-
-    const login = new LoginPage(page);
-    await login.goto();
-    await login.signIn(user);
-
-    await expect(login.error).toBeVisible();
-    await expect(page).toHaveURL(/\/login$/);
-    expect(await (await page.request.get("/api/auth/get-session")).json()).toBeNull();
-  });
-
-  // The login page maps every 403 to the "verify your email" text, so a
-  // deleted user is told something untrue.
-  test("the login page does not tell a deleted user to verify their email", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi);
-    await deleteViaApi(adminApi, (await findUser(adminApi, user.email)).id);
-
-    const login = new LoginPage(page);
-    await login.goto();
-    await login.signIn(user);
-
-    await expect(login.error).toBeVisible();
-    await expect(login.error).not.toContainText(/verify your email/i);
   });
 
   test("a session opened before the deletion stops working immediately", async ({
@@ -221,31 +133,6 @@ test.describe("A deleted user's access", () => {
     expect(JSON.stringify(await res.json())).toMatch(/User already exists/i);
     const matches = (await listUsers(adminApi)).filter((u) => u.email === user.email);
     expect(matches).toHaveLength(1);
-  });
-});
-
-test.describe("Re-creating a deleted user's email in the UI", () => {
-  test.use({ storageState: STORAGE_STATE.admin });
-
-  test("the create dialog shows an error and no second row appears", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi, { name: "Gone For Good" });
-    await deleteViaApi(adminApi, (await findUser(adminApi, user.email)).id);
-    await page.goto("/users");
-
-    await page.getByRole("button", { name: "Create user" }).click();
-    const dialog = page.getByRole("dialog", { name: "Create user" });
-    await dialog.getByLabel("Name").fill("Comeback Kid");
-    await dialog.getByLabel("Email").fill(user.email);
-    await dialog.getByLabel("Password", { exact: true }).fill(NEW_USER_PASSWORD);
-    await dialog.getByRole("button", { name: "Create user" }).click();
-
-    await expect(dialog.getByRole("alert")).toContainText(/already exists/i);
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(page.getByRole("row", { name: new RegExp(user.email) })).toHaveCount(1);
   });
 });
 

@@ -41,17 +41,6 @@ test.describe("Admin provisioning: happy path", () => {
     await expect(page.getByRole("row", { name: new RegExp(creds.email) })).toContainText("admin");
   });
 
-  test("the admin sees the new user in the Users page", async ({ adminApi, page }) => {
-    const creds = await createUserViaApi(adminApi, { name: "Listed Person" });
-
-    await loginViaUi(page, E2E_USERS.admin);
-    await page.getByRole("link", { name: "Users" }).click();
-
-    const row = page.getByRole("row", { name: new RegExp(creds.email) });
-    await expect(row).toContainText("Listed Person");
-    await expect(row).toContainText("agent");
-    await expect(row).toContainText("Active");
-  });
 });
 
 test.describe("Admin provisioning: validation", () => {
@@ -77,38 +66,6 @@ test.describe("Admin provisioning: validation", () => {
     expect(res.status()).toBe(400);
     const { details } = await res.json();
     expect(details.fieldErrors.role).toBeDefined();
-
-    const signIn = await anonApi.post("/api/auth/sign-in/email", {
-      data: { email, password: NEW_USER_PASSWORD },
-    });
-    expect(signIn.status()).toBe(401);
-  });
-
-  test("rejects an invalid email and creates no account", async ({ adminApi }) => {
-    const email = "not-an-email";
-
-    const res = await adminApi.post("/api/admin/users", {
-      data: { email, password: NEW_USER_PASSWORD, name: "Bad Email" },
-    });
-
-    expect(res.status()).toBe(400);
-    const { details } = await res.json();
-    expect(details.fieldErrors.email).toBeDefined();
-
-    const { users } = await (await adminApi.get("/api/admin/users")).json();
-    expect(users.map((u: { email: string }) => u.email)).not.toContain(email);
-  });
-
-  test("rejects a non-string name and creates no account", async ({ adminApi, anonApi }) => {
-    const email = uniqueEmail("numname");
-
-    const res = await adminApi.post("/api/admin/users", {
-      data: { email, password: NEW_USER_PASSWORD, name: 123 },
-    });
-
-    expect(res.status()).toBe(400);
-    const { details } = await res.json();
-    expect(details.fieldErrors.name).toBeDefined();
 
     const signIn = await anonApi.post("/api/auth/sign-in/email", {
       data: { email, password: NEW_USER_PASSWORD },

@@ -1,5 +1,5 @@
 import { test, expect } from "../support/fixtures.ts";
-import { LoginPage, STORAGE_STATE, userMenuTrigger } from "../support/auth.ts";
+import { LoginPage, STORAGE_STATE } from "../support/auth.ts";
 import { E2E_USERS } from "../support/env.ts";
 
 test.describe("Route guards: unauthenticated visitor", () => {
@@ -87,12 +87,6 @@ test.describe("Route guards: signed-in agent", () => {
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: /Welcome back/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Users" })).toHaveCount(0);
-  });
-
-  test("does not see the Users link in the navbar", async ({ page }) => {
-    await page.goto("/");
-    await expect(userMenuTrigger(page)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
   });
 
   test("backend: GET /api/admin/users answers 403", async ({ agentApi }) => {

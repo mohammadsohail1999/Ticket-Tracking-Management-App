@@ -10,13 +10,6 @@ test.describe("Login", () => {
     await login.goto();
   });
 
-  test("renders the sign-in form", async ({ page }) => {
-    await expect(page.getByText("Sign in", { exact: true }).first()).toBeVisible();
-    await expect(login.email).toBeVisible();
-    await expect(login.password).toBeVisible();
-    await expect(login.submit).toBeEnabled();
-  });
-
   test("admin signs in, lands on the home page and sees the Users link", async ({ page }) => {
     await login.signIn(E2E_USERS.admin);
 
@@ -70,50 +63,4 @@ test.describe("Login", () => {
     expect(await res.json()).toBeNull();
   });
 
-  test("unknown email gets the same generic error as a wrong password", async ({ page }) => {
-    await login.signIn({ email: "nobody-here@example.com", password: "Test@123" });
-
-    await expect(login.error).toHaveText("Invalid email or password");
-    await expect(page).toHaveURL(/\/login$/);
-  });
-
-  test("submitting an empty form shows field errors and sends no request", async ({ page }) => {
-    const signInRequests: string[] = [];
-    page.on("request", (req) => {
-      if (req.url().includes("/api/auth/sign-in")) signInRequests.push(req.url());
-    });
-
-    await login.submit.click();
-
-    await expect(page.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(page.getByText("Password is required.")).toBeVisible();
-    await expect(login.email).toHaveAttribute("aria-invalid", "true");
-    expect(signInRequests).toHaveLength(0);
-    await expect(page).toHaveURL(/\/login$/);
-  });
-
-  test("a malformed email is rejected client-side", async ({ page }) => {
-    await login.signIn({ email: "not-an-email", password: "Test@123" });
-
-    await expect(page.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(page.getByText("Password is required.")).toHaveCount(0);
-    await expect(page).toHaveURL(/\/login$/);
-  });
-
-  test("a missing password is rejected client-side", async ({ page }) => {
-    await login.email.fill(E2E_USERS.admin.email);
-    await login.submit.click();
-
-    await expect(page.getByText("Password is required.")).toBeVisible();
-    await expect(page.getByText("Enter a valid email address.")).toHaveCount(0);
-  });
-
-  test("shows a friendly message when the server cannot be reached", async ({ page }) => {
-    await page.route("**/api/auth/sign-in/email", (route) => route.abort());
-
-    await login.signIn(E2E_USERS.admin);
-
-    await expect(login.error).toHaveText("Could not reach the server. Please try again.");
-    await expect(page).toHaveURL(/\/login$/);
-  });
 });

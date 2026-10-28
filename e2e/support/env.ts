@@ -50,4 +50,6 @@ export const BACKEND_ENV: Record<string, string> = {
   AGENT_EMAIL: E2E_USERS.agent.email,
   AGENT_PASSWORD: E2E_USERS.agent.password,
   AGENT_NAME: E2E_USERS.agent.name,
+  INBOUND_EMAIL_SECRET: "e2e-inbound-secret",
+  SUPPORT_EMAIL_ADDRESS: "support@example.com",
 };

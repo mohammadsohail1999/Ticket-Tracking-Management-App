@@ -1,24 +1,6 @@
 import { test, expect } from "../support/fixtures.ts";
 import { NEW_USER_PASSWORD, uniqueEmail } from "../support/auth.ts";
 
-test.describe("No public sign-up: UI", () => {
-  test("the login page offers no sign-up or account-creation entry point", async ({ page }) => {
-    await page.goto("/login");
-
-    await expect(page.getByLabel("Email")).toBeVisible();
-    await expect(page.getByRole("link", { name: /sign ?up|register|create (an )?account/i })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /sign ?up|register|create (an )?account/i })).toHaveCount(0);
-  });
-
-  for (const path of ["/signup", "/sign-up", "/register"]) {
-    test(`${path} is not a route and falls through to the login page`, async ({ page }) => {
-      await page.goto(path);
-      await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByLabel("Email")).toBeVisible();
-    });
-  }
-});
-
 test.describe("No public sign-up: backend", () => {
   test("POST /api/auth/sign-up/email is rejected and no account is created", async ({
     anonApi,

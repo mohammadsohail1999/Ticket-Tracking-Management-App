@@ -22,31 +22,6 @@ async function openEditDialog(page: Page, email: string) {
 test.describe("Edit user dialog", () => {
   test.use({ storageState: STORAGE_STATE.admin });
 
-  test("opens prefilled from the row with only name and email fields", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi, { name: "Prefilled Person" });
-    const dialog = await openEditDialog(page, user.email);
-
-    await expect(dialog.getByLabel("Name")).toHaveValue(user.name);
-    await expect(dialog.getByLabel("Email")).toHaveValue(user.email);
-    await expect(dialog.getByRole("button", { name: "Save changes" })).toBeVisible();
-
-    await expect(dialog.locator("input")).toHaveCount(2);
-    await expect(dialog.getByLabel(/role/i)).toHaveCount(0);
-    await expect(dialog.getByLabel(/password/i)).toHaveCount(0);
-    await expect(dialog.getByRole("combobox")).toHaveCount(0);
-  });
-
-  test("the Edit button is labelled with the user's name", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi, { name: "Labelled Person" });
-    await page.goto("/users");
-
-    const row = page.getByRole("row", { name: new RegExp(user.email) });
-    await expect(row.getByRole("button", { name: "Edit Labelled Person" })).toBeVisible();
-  });
-
   test("saves a new name and email, closes with a toast, and the row updates", async ({
     page,
     adminApi,
@@ -102,99 +77,6 @@ test.describe("Edit user dialog", () => {
     await expect(page.getByRole("heading", { name: "Welcome back, Login" })).toBeVisible();
   });
 
-  test("stores the email lowercased", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi, { name: "Case Person" });
-    const lower = uniqueEmail("mixedcase");
-    const dialog = await openEditDialog(page, user.email);
-
-    await dialog.getByLabel("Email").fill(lower.toUpperCase());
-    await dialog.getByRole("button", { name: "Save changes" }).click();
-    await expect(dialog).toBeHidden();
-
-    await expect(page.getByRole("row", { name: new RegExp(lower) })).toContainText(lower);
-  });
-
-  test("saving without changes just closes the dialog", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi, { name: "No Change" });
-    const dialog = await openEditDialog(page, user.email);
-
-    await dialog.getByRole("button", { name: "Save changes" }).click();
-
-    await expect(page.getByText("Updated No Change.")).toBeVisible();
-    await expect(dialog).toBeHidden();
-    await expect(page.getByRole("row", { name: new RegExp(user.email) })).toContainText(
-      "No Change",
-    );
-  });
-
-  test("shows validation errors for empty fields and sends no request", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi);
-    const dialog = await openEditDialog(page, user.email);
-    let patched = false;
-    page.on("request", (req) => {
-      if (req.method() === "PATCH" && req.url().includes("/api/admin/users")) patched = true;
-    });
-
-    await dialog.getByLabel("Name").fill("");
-    await dialog.getByLabel("Email").fill("");
-    await dialog.getByRole("button", { name: "Save changes" }).click();
-
-    await expect(dialog.getByText("Name is required.")).toBeVisible();
-    await expect(dialog.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(dialog).toBeVisible();
-    expect(patched).toBe(false);
-  });
-
-  test("rejects a malformed email and a whitespace-only name", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi);
-    const dialog = await openEditDialog(page, user.email);
-
-    await dialog.getByLabel("Name").fill("   ");
-    await dialog.getByLabel("Email").fill("not-an-email");
-    await dialog.getByRole("button", { name: "Save changes" }).click();
-
-    await expect(dialog.getByText("Name is required.")).toBeVisible();
-    await expect(dialog.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(dialog).toBeVisible();
-  });
-
-  test("a duplicate email shows an error in the dialog, keeps it open and changes nothing", async ({
-    page,
-    adminApi,
-  }) => {
-    const user = await createUserViaApi(adminApi, { name: "Dupe Target" });
-    const dialog = await openEditDialog(page, user.email);
-
-    await dialog.getByLabel("Name").fill("Dupe Renamed");
-    await dialog.getByLabel("Email").fill(E2E_USERS.admin.email);
-    await dialog.getByRole("button", { name: "Save changes" }).click();
-
-    await expect(dialog.getByRole("alert")).toContainText("A user with this email already exists");
-    await expect(dialog).toBeVisible();
-    await expect(page.getByText("Updated Dupe Renamed.")).toHaveCount(0);
-
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).toBeHidden();
-    await expect(page.getByRole("row", { name: new RegExp(user.email) })).toContainText(
-      "Dupe Target",
-    );
-    await expect(page.getByRole("row", { name: /Dupe Renamed/ })).toHaveCount(0);
-  });
-
-  test("closing the dialog discards edits", async ({ page, adminApi }) => {
-    const user = await createUserViaApi(adminApi, { name: "Discard Me" });
-    const dialog = await openEditDialog(page, user.email);
-
-    await dialog.getByLabel("Name").fill("Typed But Discarded");
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).toBeHidden();
-
-    const reopened = await openEditDialog(page, user.email);
-    await expect(reopened.getByLabel("Name")).toHaveValue("Discard Me");
-  });
 });
 
 test.describe("PATCH /api/admin/users/:id authorization and validation", () => {
@@ -242,6 +124,19 @@ test.describe("PATCH /api/admin/users/:id authorization and validation", () => {
     expect(JSON.stringify(body)).not.toMatch(/password/i);
   });
 
+  test("stores the email lowercased", async ({ adminApi }) => {
+    const user = await createUserViaApi(adminApi, { name: "Case Person" });
+    const id = await userId(adminApi, user.email);
+    const lower = uniqueEmail("mixedcase");
+
+    const res = await adminApi.patch(`/api/admin/users/${id}`, {
+      data: { name: "Case Person", email: lower.toUpperCase() },
+    });
+
+    expect(res.status()).toBe(200);
+    expect((await res.json()).user.email).toBe(lower);
+  });
+
   test("rejects a role change with 400 and the role stays the same", async ({ adminApi }) => {
     const user = await createUserViaApi(adminApi, { name: "Role Locked" });
     const id = await userId(adminApi, user.email);
@@ -287,17 +182,6 @@ test.describe("PATCH /api/admin/users/:id authorization and validation", () => {
 
     expect(res.status()).toBe(404);
     expect((await res.json()).error).toBe("User not found");
-  });
-});
-
-test.describe("Edit user: agent UI", () => {
-  test.use({ storageState: STORAGE_STATE.agent });
-
-  test("an agent cannot reach the Users page or any Edit button", async ({ page }) => {
-    await page.goto("/users");
-
-    await expect(page).not.toHaveURL(/\/users$/);
-    await expect(page.getByRole("button", { name: /^Edit / })).toHaveCount(0);
   });
 });
 

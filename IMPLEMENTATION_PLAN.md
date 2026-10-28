@@ -33,9 +33,9 @@ AI provider and real email ingestion are not yet decided (see `project.md`). Thi
 
 ## Phase 2 — Core Ticket Management (manual ticket creation)
 
-- [ ] Design `tickets` table (id, subject, sender_email, status, category, priority, assigned_agent_id, timestamps)
-- [ ] Design `ticket_messages` table (id, ticket_id, author_type [student/agent/ai], body, created_at)
-- [ ] Migration: create `tickets` and `ticket_messages` tables
+- [ ] Design `tickets` table (id, subject, sender_email, status, category, priority, assigned_agent_id, timestamps) — created with the Phase 7 inbound work minus `category`/`priority`, which still need defining
+- [x] Design `ticket_messages` table (id, ticket_id, author_type [student/agent/ai], body, created_at)
+- [x] Migration: create `tickets` and `ticket_messages` tables (`add_tickets`)
 - [ ] Backend: create ticket endpoint (simulates an incoming email for now — manual form/API input)
 - [ ] Backend: list tickets endpoint (filter by status/category/priority, sort by date)
 - [ ] Backend: get single ticket + its message thread
@@ -84,11 +84,12 @@ AI provider and real email ingestion are not yet decided (see `project.md`). Thi
 
 ## Phase 7 — Real Email Ingestion & Sending
 
-*(Blocked on: email provider/approach decision)*
+*(Inbound decided; outbound still blocked on a provider decision)*
 
-- [ ] Choose inbound email approach (e.g. provider webhook, IMAP polling, Gmail/Outlook API)
-- [ ] Backend: inbound email endpoint/listener → creates a ticket (replacing the Phase 2 manual form as the primary path)
-- [ ] Thread matching: detect replies to an existing ticket vs. a new ticket
+- [x] Choose inbound email approach — provider-agnostic webhook: `POST /api/inbound/email` takes the normalized JSON in `core/schema/inboundEmail.ts`, authenticated by an `X-Inbound-Secret` shared secret
+- [ ] Provider adapter mapping the chosen provider's inbound payload (Postmark/SendGrid/Mailgun/...) onto that schema
+- [x] Backend: inbound email endpoint/listener → creates a ticket (replacing the Phase 2 manual form as the primary path)
+- [x] Thread matching: detect replies to an existing ticket vs. a new ticket (`In-Reply-To`/`References`, then a `[#N]` subject token from the original sender)
 - [ ] Choose outbound email approach and wire agent replies + AI auto-replies to actually send as email
 - [ ] Handle bounces/auto-replies/spam filtering on inbound mail
 
