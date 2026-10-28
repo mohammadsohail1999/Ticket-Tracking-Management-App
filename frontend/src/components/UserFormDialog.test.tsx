@@ -57,6 +57,29 @@ describe('UserFormDialog (create)', () => {
     expect(input).toHaveAttribute('type', 'password')
   })
 
+  it('does not submit the form when the password toggle is clicked', () => {
+    const post = vi.spyOn(api, 'post')
+    renderCreate()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password text' }))
+
+    expect(screen.queryByText('Name is required.')).not.toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('discards typed values and re-hides the password when closed', async () => {
+    const onOpenChange = renderCreate()
+    fillCreate({ name: 'Abandoned', email: 'a@example.com', password: 'Str0ng!Pass' })
+    fireEvent.click(screen.getByRole('button', { name: 'Show password text' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(''))
+    expect(screen.getByLabelText('Password')).toHaveValue('')
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
+  })
+
   it('shows validation errors and does not post an empty or short-password form', async () => {
     const post = vi.spyOn(api, 'post')
     renderCreate()
@@ -135,6 +158,16 @@ describe('UserFormDialog (edit)', () => {
     expect(screen.getByLabelText('Email')).toHaveValue('grace@example.com')
     expect(screen.queryByLabelText(/role/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument()
+  })
+
+  it('discards edits when closed', async () => {
+    renderEdit()
+    fillEdit({ name: 'Typed But Discarded', email: 'x@example.com' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Grace Agent'))
+    expect(screen.getByLabelText('Email')).toHaveValue('grace@example.com')
   })
 
   it('shows validation errors and does not patch an invalid form', async () => {

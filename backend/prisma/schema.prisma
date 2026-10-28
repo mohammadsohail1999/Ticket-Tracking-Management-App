@@ -42,8 +42,58 @@ model User {
   // banned so Better Auth refuses sign-in.
   deletedAt DateTime?
 
+  assignedTickets Ticket[]
+
   @@unique([email])
   @@map("user")
+}
+
+enum TicketStatus {
+  open
+  pending
+  resolved
+  closed
+}
+
+enum MessageAuthor {
+  student
+  agent
+  ai
+}
+
+model Ticket {
+  id              String          @id @default(uuid())
+  // Human-facing reference, used as "[#42]" in email subjects for threading.
+  number          Int             @unique @default(autoincrement())
+  subject         String
+  senderEmail     String
+  senderName      String?
+  status          TicketStatus    @default(open)
+  assignedAgentId String?
+  assignedAgent   User?           @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  messages        TicketMessage[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([senderEmail])
+  @@map("ticket")
+}
+
+model TicketMessage {
+  id         String        @id @default(uuid())
+  ticketId   String
+  ticket     Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType MessageAuthor
+  fromEmail  String?
+  body       String
+  // RFC 5322 Message-ID of the email this came from: makes webhook retries
+  // idempotent and lets In-Reply-To/References thread replies onto the ticket.
+  messageId  String?       @unique
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_message")
 }
 
 model Session {

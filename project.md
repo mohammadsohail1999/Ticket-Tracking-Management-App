@@ -24,7 +24,7 @@ Build a ticket management system that uses AI to automatically classify, respond
 
 - **Auto-send vs. draft**: AI auto-generates and sends replies for tickets it's confident about (grounded in the knowledge base). For tickets it can't confidently handle, it produces an AI-suggested reply as a starting draft and routes the ticket to an agent.
 - **Roles**: Admin (manages users/settings) and Agent (works the ticket queue, replies to students).
-- **Email ingestion**: not yet decided — to be confirmed from the course material.
+- **Email ingestion**: a provider-agnostic inbound webhook (`POST /api/inbound/email`); the specific email provider is still to be chosen.
 
 ## Tech Stack
 
@@ -34,4 +34,4 @@ Build a ticket management system that uses AI to automatically classify, respond
 - **ORM**: Prisma
 - **Auth**: Database-backed sessions
 - **AI provider**: not yet decided
-- **Email (ingestion/sending)**: not yet decided
+- **Email (ingestion/sending)**: inbound via webhook (provider TBD); sending not yet decided

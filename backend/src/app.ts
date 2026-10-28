@@ -4,6 +4,7 @@ import { toNodeHandler } from "better-auth/node";
 import auth from "./lib/auth.ts";
 import healthRouter from "./routes/health.ts";
 import adminRouter from "./routes/admin.ts";
+import inboundRouter from "./routes/inbound.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 
 const app = express();
@@ -17,6 +18,10 @@ app.use(
 
 // Must be mounted before express.json() — needs the raw request stream.
 app.all("/api/auth/*splat", toNodeHandler(auth));
+
+// Must be mounted before express.json() — the inbound email webhook checks its
+// shared secret first, then parses with its own (larger) body limit.
+app.use("/api/inbound", inboundRouter);
 
 app.use(express.json());
 
